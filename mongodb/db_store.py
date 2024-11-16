@@ -12,7 +12,7 @@ courses_data_list = transformed_data['courses']
 meeting_sections_data_list = transformed_data['meeting_sections']
 
 # Initialize the SentenceTransformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')  # You can choose a different model if you prefer
+model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')  # You can choose a different model if you prefer
 
 # Function to encode text data
 def encode_text(text_list):

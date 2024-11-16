@@ -6,6 +6,7 @@ frontend/node_modules/
 
 # Ignore Python bytecode files
 mongodb/__pycache__/
+mongodb/result/
 
 # Optional: Ignore common system or editor files (helpful for collaborative projects)
 .DS_Store
@@ -16,3 +17,5 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+.env
+mongodb/transformed_data.json
