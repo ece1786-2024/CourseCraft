@@ -195,7 +195,7 @@ if __name__ == '__main__':
     # Load pre-trained Sentence-BERT model
     print("Loading SentenceTransformer model...")
     try:
-        model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2', device="cpu")
+        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device="cpu")
         print("Model loaded successfully.")
     except Exception as e:
         print(f"Error loading model: {e}")
