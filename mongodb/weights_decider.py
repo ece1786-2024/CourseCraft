@@ -27,6 +27,7 @@ def decide_weights_with_llm(query):
     - Name
     - Description
     - Prerequisites
+    - Division/Department (Note that this field is highly relevant to the query, so if the user directly mentions a department or division, it should be given a higher weight.)
 
     **Response Format:**
     - The response must be a valid JSON object.
@@ -38,7 +39,8 @@ def decide_weights_with_llm(query):
     {{
         "name": 0.3,
         "description": 0.5,
-        "prerequisites": 0.2
+        "prerequisites": 0.2,
+        "division_department": 0.0
     }}
 
     Now generate the JSON object based on the query.
@@ -66,7 +68,7 @@ def decide_weights_with_llm(query):
     except Exception as e:
         print(f"Error with LLM response: {e}")
         # Fallback weights if LLM fails
-        return {"name": 0.3, "description": 0.5, "prerequisites": 0.2}
+        return {"name": 0.3, "description": 0.5, "prerequisites": 0.2, "division_department": 0.0}
 
 # Example usage
 query = "I am looking for courses that focus on financial mathematics, actuarial science, or investment-related topics."

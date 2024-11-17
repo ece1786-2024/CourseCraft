@@ -2,19 +2,23 @@ import faiss
 import numpy as np
 from pymongo import MongoClient
 from sentence_transformers import SentenceTransformer
-import os
-from dotenv import load_dotenv
 from weights_decider import decide_weights_with_llm
 import time
+from openai import OpenAI
+import os
+from dotenv import load_dotenv
 
+# Load API key from .env file
 load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
+openai_client = OpenAI()
 
 MONGO_URI = os.getenv('MONGO_URI')
-client = MongoClient(MONGO_URI)
+mongo_client = MongoClient(MONGO_URI)
 
 def decide_weights(query):
     weights = decide_weights_with_llm(query)
-    # weights = {"name": 0.0, "description": 1.0, "prerequisites": 0.0}
+    # weights = {"name": 0.0, "description": 1.0, "prerequisites": 0.0, "division_department": 0.0}
     return weights
 
 def retrieve_courses_from_db(query, model, num_results=10):
@@ -25,14 +29,19 @@ def retrieve_courses_from_db(query, model, num_results=10):
     try:
         print("Connecting to MongoDB...")
         # Connect to MongoDB
-        db = client['university_courses']
+        db = mongo_client['university_courses']
         courses_collection = db['courses']
         meeting_sections_collection = db['meeting_sections']
 
         # Encode the user's query
         print("Encoding the user query...")
         try:
-            query_embedding = model.encode(query, device='cpu', convert_to_numpy=True, num_workers=0).reshape(1, -1)
+            query_embedding = openai_client.embeddings.create(
+                input=query,
+                model="text-embedding-3-small"
+            )
+            query_embedding = query_embedding.data[0].embedding
+            query_embedding = np.array(query_embedding, dtype="float32").reshape(1, -1)
             print("Query encoded successfully.")
         except Exception as e:
             print(f"Error encoding query: {e}")
@@ -58,6 +67,7 @@ def retrieve_courses_from_db(query, model, num_results=10):
                     "name_embedding": 1,
                     "description_embedding": 1,
                     "prerequisites_embedding": 1,
+                    "division_department_embedding": 1
                 }
             ))
         except Exception as e:
@@ -78,12 +88,14 @@ def retrieve_courses_from_db(query, model, num_results=10):
                 name_emb = np.array(doc.get("name_embedding", []), dtype="float32")
                 desc_emb = np.array(doc.get("description_embedding", []), dtype="float32")
                 prereq_emb = np.array(doc.get("prerequisites_embedding", []), dtype="float32")
+                div_emb = np.array(doc.get("division_department_embedding", []), dtype="float32")
 
                 # Combine embeddings using dynamic weights
                 combined_emb = (
                     weights["name"] * name_emb +
                     weights["description"] * desc_emb +
-                    weights["prerequisites"] * prereq_emb
+                    weights["prerequisites"] * prereq_emb +
+                    weights["division_department"] * div_emb
                 )
 
                 combined_embeddings.append(combined_emb)
@@ -202,8 +214,9 @@ if __name__ == '__main__':
         exit()
 
     # User query
-    query = "I want to take machine learning courses and I'm only considering Computer Science courses. For example, introduction to machine learning, deep learning, and reinforcement learning."
-
+    query = """
+    I'm a first year computer science student, looking for courses in Department of Computer Science on algorithms and data structures.
+    """
     # Measure start time
     start_time = time.time()
 
