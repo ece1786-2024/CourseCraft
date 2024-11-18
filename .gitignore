@@ -24,3 +24,5 @@ mongodb/transformed_data.json
 
 Q_Understanding_Agent/.env
 Q_Understanding_Agent/AI_course_suggestions.txt
+
+mongodb/test.py

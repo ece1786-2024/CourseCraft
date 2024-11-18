@@ -2,7 +2,7 @@ import faiss
 import numpy as np
 from pymongo import MongoClient
 from sentence_transformers import SentenceTransformer
-from weights_decider import decide_weights_with_llm
+# from weights_decider import decide_weights_with_llm
 import time
 from openai import OpenAI
 import os
@@ -16,16 +16,12 @@ openai_client = OpenAI()
 MONGO_URI = os.getenv('MONGO_URI')
 mongo_client = MongoClient(MONGO_URI)
 
-def decide_weights(query):
-    weights = decide_weights_with_llm(query)
-    # weights = {"name": 0.0, "description": 1.0, "prerequisites": 0.0, "division_department": 0.0}
-    return weights
+# def decide_weights(query):
+#     weights = decide_weights_with_llm(query)
+#     # weights = {"name": 0.0, "description": 1.0, "prerequisites": 0.0, "division_department": 0.0}
+#     return weights
 
-def retrieve_courses_from_db(query, model, num_results=10):
-    if model is None:
-        print("Model is not provided.")
-        return []
-
+def retrieve_courses_from_db(query, num_results=10):
     try:
         print("Connecting to MongoDB...")
         # Connect to MongoDB
@@ -48,15 +44,15 @@ def retrieve_courses_from_db(query, model, num_results=10):
             return []
 
         # Decide weights for hybrid approach
-        print("Deciding weights for hybrid approach...")
-        weights = decide_weights(query)
-        print(f"Weights: {weights}")
+        # print("Deciding weights for hybrid approach...")
+        # weights = decide_weights(query)
+        # print(f"Weights: {weights}")
 
         # Retrieve all courses with embeddings
         print("Retrieving courses from database...")
         try:
             docs = list(courses_collection.find(
-                {"name_embedding": {"$exists": True}, "description_embedding": {"$exists": True}},
+                # {"name_embedding": {"$exists": True}, "description_embedding": {"$exists": True}},
                 {
                     "_id": 0,
                     "course_id": 1,
@@ -64,10 +60,11 @@ def retrieve_courses_from_db(query, model, num_results=10):
                     "name": 1,
                     "description": 1,
                     "prerequisites": 1,
-                    "name_embedding": 1,
-                    "description_embedding": 1,
-                    "prerequisites_embedding": 1,
-                    "division_department_embedding": 1
+                    # "name_embedding": 1,
+                    # "description_embedding": 1,
+                    # "prerequisites_embedding": 1,
+                    # "division_department_embedding": 1
+                    "embedding": 1
                 }
             ))
         except Exception as e:
@@ -85,20 +82,21 @@ def retrieve_courses_from_db(query, model, num_results=10):
         for doc in docs:
             try:
                 # Retrieve embeddings for each field
-                name_emb = np.array(doc.get("name_embedding", []), dtype="float32")
-                desc_emb = np.array(doc.get("description_embedding", []), dtype="float32")
-                prereq_emb = np.array(doc.get("prerequisites_embedding", []), dtype="float32")
-                div_emb = np.array(doc.get("division_department_embedding", []), dtype="float32")
+                # name_emb = np.array(doc.get("name_embedding", []), dtype="float32")
+                # desc_emb = np.array(doc.get("description_embedding", []), dtype="float32")
+                # prereq_emb = np.array(doc.get("prerequisites_embedding", []), dtype="float32")
+                # div_emb = np.array(doc.get("division_department_embedding", []), dtype="float32")
 
-                # Combine embeddings using dynamic weights
-                combined_emb = (
-                    weights["name"] * name_emb +
-                    weights["description"] * desc_emb +
-                    weights["prerequisites"] * prereq_emb +
-                    weights["division_department"] * div_emb
-                )
+                # # Combine embeddings using dynamic weights
+                # combined_emb = (
+                #     weights["name"] * name_emb +
+                #     weights["description"] * desc_emb +
+                #     weights["prerequisites"] * prereq_emb +
+                #     weights["division_department"] * div_emb
+                # )
 
-                combined_embeddings.append(combined_emb)
+                # combined_embeddings.append(combined_emb)
+                combined_embeddings.append(doc.get("embedding", []))
                 all_courses.append(doc)
             except Exception as e:
                 print(f"Error processing document {doc.get('course_id', 'unknown')}: {e}")
@@ -198,20 +196,11 @@ def retrieve_courses_from_db(query, model, num_results=10):
 
 if __name__ == '__main__':
     # Set multiprocessing start method
-    try:
-        import torch.multiprocessing as mp
-        mp.set_start_method('spawn', force=True)
-    except RuntimeError:
-        pass  # Start method has already been set
-
-    # Load pre-trained Sentence-BERT model
-    print("Loading SentenceTransformer model...")
-    try:
-        model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', device="cpu")
-        print("Model loaded successfully.")
-    except Exception as e:
-        print(f"Error loading model: {e}")
-        exit()
+    # try:
+    #     import torch.multiprocessing as mp
+    #     mp.set_start_method('spawn', force=True)
+    # except RuntimeError:
+    #     pass  # Start method has already been set
 
     # User query
     query = """
@@ -221,7 +210,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     # Retrieve similar courses
-    results = retrieve_courses_from_db(query, model=model)
+    results = retrieve_courses_from_db(query)
 
     # Measure end time
     end_time = time.time()
