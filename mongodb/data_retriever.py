@@ -7,6 +7,7 @@ import time
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+from db_store import extract_lecture_meeting_sections
 
 # Load API key from .env file
 load_dotenv()
@@ -21,11 +22,11 @@ mongo_client = MongoClient(MONGO_URI)
 #     # weights = {"name": 0.0, "description": 1.0, "prerequisites": 0.0, "division_department": 0.0}
 #     return weights
 
-def retrieve_courses_from_db(query, num_results=10):
+def retrieve_courses_from_db(query, num_results=20):
     try:
         print("Connecting to MongoDB...")
         # Connect to MongoDB
-        db = mongo_client['university_courses']
+        db = mongo_client['uoft_courses']
         courses_collection = db['courses']
         meeting_sections_collection = db['meeting_sections']
 
@@ -51,22 +52,15 @@ def retrieve_courses_from_db(query, num_results=10):
         # Retrieve all courses with embeddings
         print("Retrieving courses from database...")
         try:
-            docs = list(courses_collection.find(
-                # {"name_embedding": {"$exists": True}, "description_embedding": {"$exists": True}},
-                {
-                    "_id": 0,
-                    "course_id": 1,
-                    "course_code": 1,
-                    "name": 1,
-                    "description": 1,
-                    "prerequisites": 1,
-                    # "name_embedding": 1,
-                    # "description_embedding": 1,
-                    # "prerequisites_embedding": 1,
-                    # "division_department_embedding": 1
-                    "embedding": 1
-                }
-            ))
+            docs = list(courses_collection.find({}, {  # No filter, include all documents
+                "_id": 0,
+                "course_id": 1,
+                "course_code": 1,
+                "name": 1,
+                "description": 1,
+                "prerequisites": 1,
+                "embedding": 1,
+            }))
         except Exception as e:
             print(f"Error retrieving courses from database: {e}")
             return []
@@ -144,41 +138,34 @@ def retrieve_courses_from_db(query, num_results=10):
                 meeting_sections = list(meeting_sections_collection.find({'course_id': course['course_id']}))
 
                 # Build a string representation of the meeting_sections
-                meeting_sections_str = ''
-                for ms in meeting_sections:
-                    try:
-                        times_str = ''
-                        for time in ms.get('times', []):
-                            day = time.get('day', '')
-                            start = time.get('start', '')
-                            end = time.get('end', '')
-                            location = time.get('location', '')
-                            times_str += f"Day {day}, {start}-{end} at {location}; "
-                        ms_info = (
-                            f"Section: {ms.get('section_code', '')}, "
-                            f"Type: {ms.get('type', '')}, "
-                            f"Instructors: {', '.join(ms.get('instructors', []))}, "
-                            f"Times: {times_str.strip('; ')}, "
-                            f"Size: {ms.get('size', 0)}, "
-                            f"Enrolment: {ms.get('enrolment', 0)}, "
-                            f"Notes: {ms.get('notes', '')}"
-                        )
-                        meeting_sections_str += ms_info + '\n'
-                    except Exception as e:
-                        print(f"Error processing meeting section: {e}")
-                        continue
+                meeting_info = '\n'.join(extract_lecture_meeting_sections(meeting_sections))
 
-                # Create a string representation of the course
-                course_string = (
-                    f"Course Code: {course.get('course_code', '')}\n"
-                    f"Name: {course.get('name', '')}\n"
-                    f"Description: {course.get('description', '')}\n"
-                    f"Prerequisites: {course.get('prerequisites', '')}\n"
-                    f"Meeting Sections:\n{meeting_sections_str}"
+                # Create the combined text
+                combined_text = """This course {code} - '{name}' is offered by the {department} department in the {division}.
+                Course Description: {description}
+                Understanding the course code: {code}: The first three letters represent the department ({department_code}),
+                and the section code {section_code} indicates when it's offered - 'F' means Fall semester (September-December),
+                'S' means Winter semester (January-April), and 'Y' means full year course.
+                Prerequisites required: {prerequisites}
+                Exclusions: {exclusions}
+                This course is offered at the {campus} campus during these sessions: {sessions}.
+                Meeting Sections: {meeting_info}
+                """.format(
+                    code=course.get('course_code', 'N/A'),
+                    name=course.get('name', 'N/A'),
+                    department=course.get('department', 'N/A'),
+                    division=course.get('division', 'N/A'),
+                    description=course.get('description', 'N/A'),
+                    department_code=course.get('course_code', 'N/A')[:3],
+                    section_code=course.get('section_code', 'N/A'),
+                    prerequisites=course.get('prerequisites', 'No prerequisites'),
+                    exclusions=course.get('exclusions', 'No exclusions'),
+                    campus=course.get('campus', 'N/A'),
+                    sessions=', '.join(course.get('sessions', [])) or 'N/A',
+                    meeting_info=meeting_info or 'N/A'
                 )
 
-                # Append to results
-                retrieved_courses.append(course_string)
+                retrieved_courses.append(combined_text)
                 course_ids_seen.add(course['course_id'])
 
                 # Limit the number of results
@@ -204,7 +191,15 @@ if __name__ == '__main__':
 
     # User query
     query = """
-    I'm a first year computer science student, looking for courses in Department of Computer Science on algorithms and data structures.
+    I want to learn CSC165, it's called Mathematical Expression and Reasoning for Computer Science, 
+    this course belongs to department of Computer Science Faculty of Arts and Science. It talks about 
+    Introduction to abstraction and rigour. Informal introduction to logical notation and reasoning. 
+    Understanding, using and developing precise expressions of mathematical ideas, including definitions 
+    and theorems. Structuring proofs to improve presentation and comprehension. General problem-solving 
+    techniques. Representation of floating-point numbers. Running time analysis of iterative programs. 
+    Formal definition of Big-Oh. Diagonalization, the Halting Problem, and some reductions. Unified 
+    approaches to programming and theoretical problems. Do you know anything about that course? Is 
+    there any prerequisites or co-requisites I need to be aware of?
     """
     # Measure start time
     start_time = time.time()
