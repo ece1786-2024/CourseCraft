@@ -1,27 +1,25 @@
-import openai
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 from PyPDF2 import PdfReader
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
 
 # Validate OpenAI API key
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
     print("Error: OPENAI_API_KEY is not set in the environment variables.")
     exit(1)
 
-# Set the API key for OpenAI
-openai.api_key = api_key
+# Initialize OpenAI client
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Parse resume
 resume_file_path = "test_resume.pdf"  # Replace with your file path
 try:
     reader = PdfReader(resume_file_path)
-    resume_text = ""
-    for page in reader.pages:
-        resume_text += page.extract_text()
+    resume_text = "".join(page.extract_text() for page in reader.pages)
 except Exception as e:
     print(f"Error reading the PDF file: {e}")
     exit(1)
@@ -47,8 +45,9 @@ conversation_history = [
         "pre-requisites associated with this course. For example, for a course CSC413 at UofT, the description should be something like this: An introduction to neural networks and deep learning. Backpropagation and automatic differentiation. "
         "Architectures: convolutional networks and recurrent neural networks. Methods for improving optimization and generalization. Neural networks for unsupervised and reinforcement learning. Understanding the course code: CSC413H5: The first three letters "
         "represent the department (CSC), and the section code N/A, 'S' means Winter semester (January-April), and 'Y' means full year course. Prerequisites required: CSC311H5 or CSC411H5.\n\n"
-        "Make sure your possible course guesses do not mention course code. As you interact with the student, adapt your communication style to be empathetic and relatable, ensuring you gain as much information as possible. Once you feel confident that you have gathered sufficient "
-        "details, end the conversation and provide your final output. Your goal is to ensure the refined query serves as the most effective input for the RAG pipeline to retrieve the best possible matches from the database. Once you returned your final output, do not say anything else other than the final output."
+        "Make sure your possible course guesses do not mention course code.\n"
+        "As you interact with the student, adapt your communication style to be empathetic and relatable, ensuring you gain as much information as possible. Once you feel confident that you have gathered sufficient details, end the conversation and provide your final output. "
+        "Your goal is to ensure the refined query serves as the most effective input for the RAG pipeline to retrieve the best possible matches from the database. Once you returned your final output, do not say anything else other than the final output."
     )},
     {"role": "system", "content": f"The user's resume:\n{resume_text}"}
 ]
@@ -58,15 +57,16 @@ print("Hello! I’m here to help you with course recommendations. Let’s start 
 try:
     while True:
         # Generate a single question
-        question_response = openai.ChatCompletion.create(
+        question_response = client.chat.completions.create(
             model="gpt-4",
             messages=conversation_history,
             max_tokens=2048,
             temperature=1
         )
         
-        response = question_response.choices[0].message.content.strip()
-        print(f"Assistant: {response}")
+        # Correctly access the response
+        response_content = question_response.choices[0].message.content.strip()
+        print(f"Assistant: {response_content}")
         
         # Get user input
         user_response = input("User: ").strip()
@@ -80,7 +80,7 @@ try:
             exit(0)
 
         # Add user response to conversation history
-        conversation_history.append({"role": "assistant", "content": response})
+        conversation_history.append({"role": "assistant", "content": response_content})
         conversation_history.append({"role": "user", "content": user_response})
 
 except Exception as e:
@@ -89,7 +89,7 @@ except Exception as e:
 
 # Generate the final refined query
 try:
-    refined_query_response = openai.ChatCompletion.create(
+    refined_query_response = client.chat.completions.create(
         model="gpt-4",
         messages=conversation_history + [
             {"role": "user", "content": (
@@ -99,18 +99,13 @@ try:
         max_tokens=2048,
         temperature=1
     )
-    refined_query = refined_query_response.choices[0].message.content.strip()
+    refined_query_content = refined_query_response.choices[0].message.content.strip()
     print("\nRefined Query:")
-    print(refined_query)
+    print(refined_query_content)
 
-    # Format the refined query with new lines
-    formatted_query = "\n\n".join(
-        f"{line.strip()}" for line in refined_query.split(". ") if line.strip()
-    )
-
-    # Write the formatted refined query to a text file
+    # Write the refined query to a text file
     with open("refined_query.txt", "w") as file:
-        file.write(f"Refined Query:\n\n{formatted_query}\n")
+        file.write(f"Refined Query:\n\n{refined_query_content}\n")
     print("Refined query saved to 'refined_query.txt'.")
 
 except Exception as e:
