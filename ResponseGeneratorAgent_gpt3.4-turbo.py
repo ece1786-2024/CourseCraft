@@ -47,7 +47,7 @@ class ResponseGeneratorAgent:
             "content": f"""
             User Query: {user_query}
             Retrieved Courses: {retrieved_courses}
-            Now generate a comprehensive recommendation of courses and the reason for recommending these courses.
+            Now starts your recommendations.
             """
         })
 
