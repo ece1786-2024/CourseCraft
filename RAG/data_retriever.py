@@ -5,9 +5,13 @@ from sentence_transformers import SentenceTransformer
 # from weights_decider import decide_weights_with_llm
 import time
 from openai import OpenAI
-import os
 from dotenv import load_dotenv
-from db_store import extract_lecture_meeting_sections
+from mongodb.db_store import extract_lecture_meeting_sections
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
+sys.path.append(parent_dir)
 
 # Load API key from .env file
 load_dotenv()
@@ -60,6 +64,11 @@ def retrieve_courses_from_db(query, num_results=20):
                 "description": 1,
                 "prerequisites": 1,
                 "embedding": 1,
+                "department": 1,
+                "division": 1,
+                "exclusions": 1,
+                "campus": 1,
+                "section_code": 1,
             }))
         except Exception as e:
             print(f"Error retrieving courses from database: {e}")
@@ -138,7 +147,7 @@ def retrieve_courses_from_db(query, num_results=20):
                 meeting_sections = list(meeting_sections_collection.find({'course_id': course['course_id']}))
 
                 # Build a string representation of the meeting_sections
-                meeting_info = '\n'.join(extract_lecture_meeting_sections(meeting_sections))
+                meeting_info = '\n'.join(extract_lecture_meeting_sections(course['course_id'], meeting_sections))
 
                 # Create the combined text
                 combined_text = """This course {code} - '{name}' is offered by the {department} department in the {division}.
@@ -191,15 +200,15 @@ if __name__ == '__main__':
 
     # User query
     query = """
-    I want to learn CSC165, it's called Mathematical Expression and Reasoning for Computer Science, 
-    this course belongs to department of Computer Science Faculty of Arts and Science. It talks about 
-    Introduction to abstraction and rigour. Informal introduction to logical notation and reasoning. 
-    Understanding, using and developing precise expressions of mathematical ideas, including definitions 
-    and theorems. Structuring proofs to improve presentation and comprehension. General problem-solving 
-    techniques. Representation of floating-point numbers. Running time analysis of iterative programs. 
-    Formal definition of Big-Oh. Diagonalization, the Halting Problem, and some reductions. Unified 
-    approaches to programming and theoretical problems. Do you know anything about that course? Is 
-    there any prerequisites or co-requisites I need to be aware of?
+    Refined User Query: The student is interested in an introductory course in machine learning and AI at the University of Toronto's St. George campus. They prefer an entry-level course, focusing on broad concepts of ML and AI without specific experience in mathematics or programming prerequisites. The student is keen on exploring various aspects of machine learning, possibly including neural networks, natural language processing, and robotics, with an eye towards applying this knowledge in a versatile career setting. They have expressed an openness to foundational learning and potential exploration of AI's diverse applications.
+
+    Possible guesses on courses: 
+    - Introduction to Machine Learning, Computer Science Department, St. George Campus, Faculty of Arts & Science. This course might cover the basics of supervised and unsupervised learning, decision trees, regression models, and introductory neural networks. There might be initial discussion of real-world applications such as image and speech recognition.
+    - AI Fundamentals, Computer Science Department, St. George Campus, Faculty of Arts & Science. This course could delve into foundational AI concepts, including problem-solving, search algorithms, basic natural language processing, and an overview of AI development history and ethical implications.
+    - Basics of Data Science and AI, Institute of Data Science, St. George Campus, Faculty of Arts & Science. This course might offer an introduction to data handling, basic statistical analysis, machine learning libraries, and AI applications across various fields.
+    - Foundations of Neural Networks, Computer Science Department, St. George Campus, Faculty of Arts & Science. While being a bit more focused, this course might introduce neural network architectures, training algorithms, and early applications.
+
+    These courses would provide a solid starting ground for a comprehensive understanding of machine learning and AI, preparing you for more advanced topics later on.
     """
     # Measure start time
     start_time = time.time()

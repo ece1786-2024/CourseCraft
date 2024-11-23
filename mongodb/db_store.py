@@ -11,7 +11,7 @@ api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI()
 
 # Load the transformed data
-input_file_path = "transformed_data.json"
+input_file_path = "mongodb/transformed_data.json"
 with open(input_file_path, 'r', encoding='utf-8') as infile:
     transformed_data = json.load(infile)
 
@@ -30,7 +30,7 @@ def encode_text_with_openai(text_list):
         embeddings.append(response.data[0].embedding)
     return embeddings
 
-def extract_lecture_meeting_sections(course_id):
+def extract_lecture_meeting_sections(course_id, meeting_sections_data_list):
     """
     Extract lecture meeting sections for a specific course_id.
     
