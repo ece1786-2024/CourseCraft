@@ -18,7 +18,7 @@ const Section = () => {
       </section>
       <section className="am-sect">
         <div className="container-width">
-        <div className="flex-title">Explore These Courses</div>
+        {/* <div className="flex-title">Explore These Courses</div>
           <div className="flex-desc">The following courses might be helpful for your future study</div>
           <div className="cards">
             <Card 
@@ -51,7 +51,7 @@ const Section = () => {
               subtitle={`Introduction to Statistical`} 
               link="https://artsci.calendar.utoronto.ca/course/sta130h1"
             />
-          </div>
+          </div> */}
         </div>
       </section>
       {/* Price Cards Section */}
@@ -67,7 +67,7 @@ const Section = () => {
         </div>
       </section> */}
       {/* Team Section */}
-      <section className="bdg-sect">
+      {/* <section className="bdg-sect">
         <div className="container-width">
           <h1 className="bdg-title">The team</h1>
           <div className="badges">
@@ -102,8 +102,8 @@ const Section = () => {
                 image={computer_icon}
                 description="Our witty virtual assistant, we can't live without it!"/>
           </div>
-        </div>
-      </section>
+        </div> */}
+      {/* </section> */}
     </main>
   );
 };

@@ -19,7 +19,7 @@ const Header = () => {
           <div className="logo">Fall 2024</div>
         </div>
         <div className="clearfix"></div>
-        <div className="lead-title">GPT Makes Course Selection Easier</div>
+        <div className="lead-title">CourseCraft - Making Course Selection Easier</div>
         <div className="sub-lead-title">
           Feeling overwhelmed by course selection? <br/>
           Don't worry — we're here to help you navigate your choices with personalized AI recommendations!
