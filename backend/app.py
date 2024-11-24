@@ -4,15 +4,12 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from PyPDF2 import PdfReader
-<<<<<<< HEAD
 from werkzeug.utils import secure_filename
-=======
 import sys
 
 # Add the parent directory (where `RAG` is located) to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
->>>>>>> 9f6c096 (Fixed file path issues)
 from RAG.data_retriever import retrieve_courses_from_db
 from ResponseGeneratorAgent import ResponseGeneratorAgent
 
