@@ -48,8 +48,9 @@ function ChatBox() {
 
   const getBotResponse = async (userMessage) => {
     try {
+      // Add "thinking" indicator to chat history
       setChatHistory(prev => [...prev, { text: 'I am thinking ...', isBot: true }]);
-
+  
       const response = await fetch('http://127.0.0.1:5000/query', {
         method: 'POST',
         headers: {
@@ -60,36 +61,37 @@ function ChatBox() {
           message: userMessage,
         }),
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         throw new Error(data.error || 'Network response was not ok');
       }
-
+  
       let botMessage = data.response;
-
+  
       setIsThinking(false);
       updateBotMessage(botMessage);
-
+  
       if (data.conversationEnded) {
+        // Display the final output to the user
         setChatHistory(prev => [
           ...prev,
-          { text: 'Here is your refined query:', isBot: true },
-          { text: data.refinedQuery, isBot: true },
+          { text: data.finalOutput, isBot: true },
         ]);
-
-        // Optionally, handle the refined query (e.g., perform a search)
-        // handleRefinedQuery(data.refinedQuery);
+  
+        // Optionally, handle any further actions with the final output
+        // handleFinalOutput(data.finalOutput);
       }
     } catch (error) {
       console.error("Error fetching bot response:", error);
       let botMessage = fake_response;
-
+  
       setIsThinking(false);
       updateBotMessage(botMessage);
     }
   };
+  
 
   const updateBotMessage = (botMessage) => {
     setChatHistory(prev => {

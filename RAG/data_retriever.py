@@ -1,7 +1,6 @@
 import faiss
 import numpy as np
 from pymongo import MongoClient
-from sentence_transformers import SentenceTransformer
 # from weights_decider import decide_weights_with_llm
 import time
 from openai import OpenAI

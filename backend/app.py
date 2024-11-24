@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
+from RAG.data_retriever import retrieve_courses_from_db
+from ResponseGeneratorAgent import ResponseGeneratorAgent
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -95,6 +97,14 @@ system_prompt = """
         information to provide tailored course recommendations. Always prioritize the student's comfort and understanding, ensuring that 
         the conversation remains open and student-centered.
 """
+
+def generate_final_output(refined_query, retrieved_courses):
+    # Initialize the ResponseGeneratorAgent
+    agent = ResponseGeneratorAgent()
+    final_output = agent.generate_response(refined_query, retrieved_courses)
+    return final_output
+
+
 @app.route('/query', methods=['POST'])
 def handle_query():
     data = request.get_json()
@@ -142,12 +152,26 @@ def handle_query():
                 ],
             )
 
+            print(conversations)
             refined_query = refined_query_response.choices[0].message.content.strip()
+
+            # Retrieve courses from the database based on the refined query
+            retrieved_courses = retrieve_courses_from_db(refined_query)
+
+            print(retrieved_courses)
+
+            # Use the refined query and retrieved courses to generate the final output
+            final_output = generate_final_output(refined_query, retrieved_courses)
 
             # Clear the conversation history
             del conversations[user_id]
 
-            return jsonify({'response': bot_message, 'refinedQuery': refined_query, 'conversationEnded': True})
+            # Return the final output to the frontend
+            return jsonify({
+                'response': "Generating your refined query and course recommendations...",
+                'finalOutput': final_output,
+                'conversationEnded': True
+            })
 
         return jsonify({'response': bot_message, 'conversationEnded': False})
 
