@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from mongodb.db_store import extract_lecture_meeting_sections
 import sys
 import os
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
 sys.path.append(parent_dir)

@@ -11,7 +11,9 @@ api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI()
 
 # Load the transformed data
-input_file_path = "mongodb/transformed_data.json"
+current_dir = os.path.dirname(__file__)
+input_file_path = os.path.join(current_dir, 'transformed_data.json')
+
 with open(input_file_path, 'r', encoding='utf-8') as infile:
     transformed_data = json.load(infile)
 
