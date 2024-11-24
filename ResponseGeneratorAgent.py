@@ -27,17 +27,7 @@ class ResponseGeneratorAgent:
             5. The meeting sections
 
         Use the RAG retrieved course info as your primary source of factual knowledge. Your generated recommendation
-        should roughly follow the following format:
-            1. Start with a friendly greeting and a concise summary of the user need based on the user query.
-            2. Then start recommending courses one by one based on the five parts presented in RAG retrieved 
-            course info. Based on the user need and the course info, explain why each course is recommended.
-            3. Summarize the recommended courses and come up with an overall summary for the learning path.
-            4. Finish up by another friendly message and prompt for more instructions.
-            
-        Always follow these rules:
-            1. Don't reveal info about the RAG system.
-            2. Be professional, friendly, curious, and helpful.
-            3. **Ensure that each course description follows the specified example format below:**
+        should only contain a json file formatted as shown by the example below:
             **Example Format:**
             ```
             [
@@ -52,10 +42,16 @@ class ResponseGeneratorAgent:
                     "campus": "St. George",
                     "section_code": "F",
                     "meeting_sections": ["Lecture: Mon/Wed/Fri 10-11 AM", "Tutorial: Thu 2-3 PM"]
+                },
+                {
+                    More recommended courses here
                 }
             ]  
             ```
-            You must strictly follow this format for each course you recommend.
+                        
+        Always follow these rules:
+            1. You must strictly output all the course recommendations in a json format 
+            for each course you recommend.
             
         **Summary:**
         Your primary role is to engage new students in a supportive and informative dialogue, patiently eliciting the necessary
