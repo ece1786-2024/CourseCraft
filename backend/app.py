@@ -7,6 +7,8 @@ from PyPDF2 import PdfReader
 from werkzeug.utils import secure_filename
 import sys
 
+uploaded_resumes = {}
+
 # Add the parent directory (where `RAG` is located) to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -30,15 +32,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# # Parse resume
-# resume_file_path = "Q_Understanding_Agent/test_resume.pdf" 
-# try:
-#     reader = PdfReader(resume_file_path)
-#     resume_text = "".join(page.extract_text() for page in reader.pages)
-# except Exception as e:
-#     print(f"Error reading the PDF file: {e}")
-#     exit(1)
 
 # In-memory storage for conversation history
 conversations = {}
@@ -109,7 +102,6 @@ def generate_final_output(refined_query, retrieved_courses):
     final_output = agent.generate_response(refined_query, retrieved_courses)
     return final_output
 
-
 @app.route('/query', methods=['POST'])
 def handle_query():
     data = request.get_json()
@@ -121,10 +113,19 @@ def handle_query():
 
     # Initialize conversation history for the user if not exists
     if user_id not in conversations:
-        conversations[user_id] = [
-            {'role': 'system', 'content': system_prompt},
-            {"role": "system", "content": f"The user's resume:\n{resume_text}"}
-        ]
+        system_messages = [{'role': 'system', 'content': system_prompt}]
+
+        # Check if the user has uploaded a resume
+        if user_id in uploaded_resumes:
+            system_messages.append(
+                {"role": "system", "content": f"The user's resume:\n{uploaded_resumes[user_id]}"}
+            )
+        else:
+            system_messages.append(
+                {"role": "system", "content": "No resume was uploaded for this user."}
+            )
+        
+        conversations[user_id] = system_messages
 
     # Add user message to conversation history
     conversations[user_id].append({'role': 'user', 'content': message})
@@ -157,15 +158,12 @@ def handle_query():
                 ],
             )
 
-            print(conversations)
             refined_query = refined_query_response.choices[0].message.content.strip()
 
             # Retrieve courses from the database based on the refined query
             retrieved_courses = retrieve_courses_from_db(refined_query)
 
-            print(retrieved_courses)
-
-            # Use the refined query and retrieved courses to generate the final output
+            # Generate the final output using the refined query and retrieved courses
             final_output = generate_final_output(refined_query, retrieved_courses)
 
             # Clear the conversation history
@@ -196,6 +194,11 @@ def reset_conversation():
 
 @app.route('/upload', methods=['POST'])
 def upload_resume():
+    user_id = request.form.get('userId')  # Get userId from form data
+
+    if not user_id:
+        return jsonify({'error': 'Missing userId in the request'}), 400
+    
     if 'resume' not in request.files:
         return jsonify({'error': 'No file part in the request'}), 400
 
@@ -208,10 +211,18 @@ def upload_resume():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
-        # Optionally, process the file here (e.g., extract text, etc.)
-        return jsonify({'message': 'File uploaded successfully', 'filePath': file_path}), 200
-    else:
-        return jsonify({'error': 'Invalid file type. Only PDFs are allowed.'}), 400
+        # Extract resume text
+        try:
+            reader = PdfReader(file_path)
+            resume_text = "".join(page.extract_text() for page in reader.pages)
+            uploaded_resumes[user_id] = resume_text  # Store the text in memory
+        except Exception as e:
+            return jsonify({'error': f'Error reading the PDF file: {e}'}), 500
 
+        return jsonify({'message': 'File uploaded successfully', 'filePath': file_path}), 200
+    
+    return jsonify({'error': 'Invalid file type. Only PDFs are allowed.'}), 400
+
+    
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
