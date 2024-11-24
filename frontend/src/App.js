@@ -3,6 +3,8 @@ import './App.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Section from './components/Section';
+import ResumeUploader from './components/ResumeUploader';
+
 
 const App = () => {
   return (
@@ -10,6 +12,9 @@ const App = () => {
       <Header />
       <Section />
       {/* <Footer /> */}
+      <div>
+      <ResumeUploader />
+      </div>
     </div>
   );
 };

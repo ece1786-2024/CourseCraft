@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from PyPDF2 import PdfReader
+from werkzeug.utils import secure_filename
 
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
@@ -12,14 +13,25 @@ client = OpenAI()
 app = Flask(__name__)
 CORS(app)
 
-# Parse resume
-resume_file_path = "Q_Understanding_Agent/test_resume.pdf" 
-try:
-    reader = PdfReader(resume_file_path)
-    resume_text = "".join(page.extract_text() for page in reader.pages)
-except Exception as e:
-    print(f"Error reading the PDF file: {e}")
-    exit(1)
+
+# handles resume
+UPLOAD_FOLDER = 'uploaded_resumes'
+ALLOWED_EXTENSIONS = {'pdf'}
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# # Parse resume
+# resume_file_path = "Q_Understanding_Agent/test_resume.pdf" 
+# try:
+#     reader = PdfReader(resume_file_path)
+#     resume_text = "".join(page.extract_text() for page in reader.pages)
+# except Exception as e:
+#     print(f"Error reading the PDF file: {e}")
+#     exit(1)
 
 # In-memory storage for conversation history
 conversations = {}
@@ -152,6 +164,25 @@ def reset_conversation():
         del conversations[user_id]
 
     return jsonify({'message': 'Conversation reset.'})
+
+@app.route('/upload', methods=['POST'])
+def upload_resume():
+    if 'resume' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+
+    file = request.files['resume']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+
+        # Optionally, process the file here (e.g., extract text, etc.)
+        return jsonify({'message': 'File uploaded successfully', 'filePath': file_path}), 200
+    else:
+        return jsonify({'error': 'Invalid file type. Only PDFs are allowed.'}), 400
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
