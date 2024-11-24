@@ -21,17 +21,6 @@ client = OpenAI()
 app = Flask(__name__)
 CORS(app)
 
-
-# handles resume
-UPLOAD_FOLDER = 'uploaded_resumes'
-ALLOWED_EXTENSIONS = {'pdf'}
-
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 # In-memory storage for conversation history
 conversations = {}
 
@@ -56,7 +45,8 @@ system_prompt = """
 
         2. **Engaging in Multi-Turn Conversations:**
         - In each subsequent turn, patiently ask open-ended questions to gather more details about the student's interests,
-        academic goals, and any specific areas they are curious about.
+        academic goals, and any specific areas they are curious about. Your questions should be one or two sentences long, keep them straight forward and easy to understand. 
+        Also, ask about student's department, campus, faculty, and any specific hard constraints on the courses.
         - **Behavior Guidelines:**
             - **Patient Inquiry:** Always approach each question with patience, allowing the student ample time to respond.
             - **Open-Ended Questions:** Use questions that cannot be answered with a simple "yes" or "no" to encourage detailed responses.
@@ -169,15 +159,18 @@ def handle_query():
             # Retrieve courses from the database based on the refined query
             retrieved_courses = retrieve_courses_from_db(refined_query)
 
+            print(retrieved_courses)
+            print(refined_query)
+
             # Generate the final output using the refined query and retrieved courses
-            final_output = generate_final_output(refined_query, retrieved_courses)
+            final_output = generate_final_output(refined_query, retrieved_courses) 
 
             # Clear the conversation history
             del conversations[user_id]
 
             # Return the final output to the frontend
             return jsonify({
-                'response': "Generating your refined query and course recommendations...",
+                'response': "Generating your course recommendations...",
                 'finalOutput': final_output,
                 'conversationEnded': True
             })

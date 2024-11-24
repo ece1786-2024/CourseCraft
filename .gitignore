@@ -35,5 +35,6 @@ frontend/package-lock.json
 
 /RAG/__pycache__/
 /__pycache__/
-/backend/uploaded_resumes/
+/uploads/
 
+.gitignore
