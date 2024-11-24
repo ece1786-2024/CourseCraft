@@ -8,7 +8,7 @@ const Footer = () => {
     <footer className="footer-under">
       <div className="container-width">
         <div className="footer-content">
-          <p> copyright © U of T Hackathon Team 1 members. All rights reserved.</p>
+          <p> copyright © U of T CourseCraft team members. All rights reserved.</p>
         </div>
       </div>
     </footer>

@@ -132,6 +132,12 @@ function ChatBox() {
       // Validate file type and size if necessary
       const formData = new FormData();
       formData.append('resume', file);
+      formData.append('userId', userId.current);
+
+      // Log FormData entries
+      for (var pair of formData.entries()) {
+        console.log(pair[0]+ ', ' + pair[1]);
+      }
 
       try {
         const response = await fetch('http://127.0.0.1:5000/upload_resume', {
