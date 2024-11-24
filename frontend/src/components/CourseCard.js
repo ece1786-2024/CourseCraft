@@ -1,17 +1,22 @@
-// CourseCard.jsx
 import React from 'react';
 import { Card, CardHeader, CardContent, CardActions, Typography, Button, IconButton, Collapse } from '@mui/material';
 import { Favorite, ExpandMore } from '@mui/icons-material';
 
 function CourseCard({ course, onAddToFavorites }) {
   const [expanded, setExpanded] = React.useState(false);
+  const [isFavorited, setIsFavorited] = React.useState(false); // State to track if the course is favorited
 
   const handleExpandClick = () => {
     setExpanded(!expanded);
   };
 
+  const handleFavoriteClick = () => {
+    setIsFavorited(!isFavorited); // Toggle the favorited state
+    onAddToFavorites(course); // Call the callback to handle the favorite logic
+  };
+
   return (
-    <Card sx={{ maxWidth: 600, margin: '1rem auto' }}>
+    <Card sx={{ maxWidth: 400, margin: '1rem auto' }}>
       <CardHeader
         title={`${course.course_code} - ${course.name}`}
         subheader={`${course.department} | ${course.division}`}
@@ -25,7 +30,11 @@ function CourseCard({ course, onAddToFavorites }) {
         </Typography>
       </CardContent>
       <CardActions disableSpacing>
-        <IconButton aria-label="add to favorites" onClick={() => onAddToFavorites(course)}>
+        <IconButton
+          aria-label="add to favorites"
+          onClick={handleFavoriteClick}
+          sx={{ color: isFavorited ? 'red' : 'grey' }} // Change color based on state
+        >
           <Favorite />
         </IconButton>
         <Button

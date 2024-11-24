@@ -1,5 +1,5 @@
 // ChatBox.js
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import './ChatBox.css';
 import chat_bot_icon from "./../images/chat_bot_icon.jpg";
 import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
 
-function ChatBox() {
+// Import CourseList component
+import CourseList from './CourseList';
+
+const ChatBox = forwardRef(({ onCoursesReceived }, ref) => {
   const fake_response = "The server is not connected ~~";
   const [input, setInput] = useState('');
   const [chatHistory, setChatHistory] = useState([
@@ -80,14 +83,33 @@ function ChatBox() {
       updateBotMessage(botMessage);
   
       if (data.conversationEnded) {
-        // Display the final output to the user
+        // Parse and handle the courses data
+        let courses = [];
+        try {
+          courses = JSON.parse(data.finalOutput);
+          console.log("Parsed JSON:", courses);
+  
+          // Pass the courses data to the parent component (if needed)
+          onCoursesReceived(courses);
+        } catch (error) {
+          console.error("Failed to parse JSON:", error);
+          onCoursesReceived([]);
+        }
+  
+        // Add a friendly message and the course recommendations to the chat history
         setChatHistory(prev => [
           ...prev,
-          { text: data.finalOutput, isBot: true },
+          {
+            text: "Based on our conversation, I've found some course recommendations for you:",
+            isBot: true,
+            type: 'text',
+          },
+          {
+            isBot: true,
+            type: 'courses',
+            courses: courses,
+          },
         ]);
-  
-        // Optionally, handle any further actions with the final output
-        // handleFinalOutput(data.finalOutput);
       }
     } catch (error) {
       console.error("Error fetching bot response:", error);
@@ -162,7 +184,7 @@ function ChatBox() {
   };
 
   return (
-    <div className="chatbox-container">
+    <div ref={ref} className="chatbox-container">
       <div className="chat-header">
         <img src={chat_bot_icon} className="img-avatar" alt="Chat Bot Avatar" />
         <div className="text-chat">Course Recommender</div>
@@ -181,26 +203,28 @@ function ChatBox() {
 
         {/* Reset Chat Button */}
         <button onClick={resetChat} type="button" className="trash-button" aria-label="Reset Chat">
-          <svg viewBox="0 0 448 512" className="svgIcon">
-            <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 
-            32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 
-            0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 
-            22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"></path>
-          </svg>
+          <FontAwesomeIcon icon={faTrash} />
         </button>
       </div>
 
       <div className="chatbox" ref={historyRef}>
         <div className="historyChat">
-          {chatHistory.map((message, index) => (
-            <div key={index} className={`text ${message.isBot ? 'botText' : 'userText'}`}>
-              {message.isBot ? (
-                <p dangerouslySetInnerHTML={{ __html: message.text }}></p>
-              ) : (
-                <p>{message.text}</p>
-              )}
-            </div>
-          ))}
+          {chatHistory.map((message, index) => {
+            if (message.type === 'courses') {
+              return (
+                <div key={index} className={`text ${message.isBot ? 'botText' : 'userText'}`}>
+                  {/* Render the course recommendations */}
+                  <CourseList courses={message.courses} />
+                </div>
+              );
+            } else {
+              return (
+                <div key={index} className={`text ${message.isBot ? 'botText' : 'userText'}`}>
+                  <p>{message.text}</p>
+                </div>
+              );
+            }
+          })}
         </div>
       </div>
 
@@ -228,6 +252,6 @@ function ChatBox() {
       </div>
     </div>
   );
-}
+});
 
 export default ChatBox;
