@@ -49,6 +49,11 @@ system_prompt = """
             Hello! I'm here to help you with selecting the right courses for your first year. Please feel free to share any information 
             about your interests, goals, or preferences that can assist me in providing the best suggestions for your studies.
             ```
+        - **Resume Upload:** Inform the student that they have the option to upload their resume, which will be added to the conversation history to help tailor course recommendations.
+            - Example Message:
+            ```
+            If you have a resume you'd like to share, please upload it. This will help me better understand your background and provide more personalized course suggestions.
+            ```
 
         2. **Engaging in Multi-Turn Conversations:**
         - In each subsequent turn, patiently ask open-ended questions to gather more details about the student's interests,
@@ -216,6 +221,7 @@ def upload_resume():
             reader = PdfReader(file_path)
             resume_text = "".join(page.extract_text() for page in reader.pages)
             uploaded_resumes[user_id] = resume_text  # Store the text in memory
+            conversations[user_id].append({'role': 'user', 'content': resume_text})
         except Exception as e:
             return jsonify({'error': f'Error reading the PDF file: {e}'}), 500
 
