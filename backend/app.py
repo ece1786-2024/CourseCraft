@@ -4,7 +4,15 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from PyPDF2 import PdfReader
+<<<<<<< HEAD
 from werkzeug.utils import secure_filename
+=======
+import sys
+
+# Add the parent directory (where `RAG` is located) to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+>>>>>>> 9f6c096 (Fixed file path issues)
 from RAG.data_retriever import retrieve_courses_from_db
 from ResponseGeneratorAgent import ResponseGeneratorAgent
 
@@ -127,7 +135,7 @@ def handle_query():
     try:
         # Call OpenAI API with conversation history
         response = client.chat.completions.create(
-            model='gpt-3.5-turbo',
+            model='gpt-4o',
             messages=conversations[user_id],
         )
 
@@ -145,7 +153,7 @@ def handle_query():
 
             # Generate the refined query based on the conversation
             refined_query_response = client.chat.completions.create(
-                model='gpt-3.5-turbo',
+                model='gpt-4o',
                 messages=[
                     {'role': 'system', 'content': 'Based on the conversation, generate a concise and precise query suitable for searching a course database. The query should reflect the user’s interests and requirements.'},
                     *conversations[user_id],
