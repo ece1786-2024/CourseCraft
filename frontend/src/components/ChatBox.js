@@ -1,17 +1,23 @@
+// ChatBox.js
 import React, { useState, useRef, useEffect } from 'react';
 import './ChatBox.css';
 import chat_bot_icon from "./../images/chat_bot_icon.jpg";
 import { v4 as uuidv4 } from 'uuid';
 
+// Import Font Awesome components
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
+
 function ChatBox() {
   const fake_response = "The server is not connected ~~";
   const [input, setInput] = useState('');
   const [chatHistory, setChatHistory] = useState([
-    { text: "Hey, what can I help you today!", isBot: true },
+    { text: "Hello! 😊 Welcome to the University of Toronto's course selection assistant. I'm here to help you navigate your first-year course options and make choices that align with your interests and goals.", isBot: true },
   ]);
   const [isThinking, setIsThinking] = useState(false);
   const historyRef = useRef(null);
   const userId = useRef(uuidv4()); // Generate a unique ID for the session
+  const fileInputRef = useRef(null); // Reference for the hidden file input
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -91,7 +97,6 @@ function ChatBox() {
       updateBotMessage(botMessage);
     }
   };
-  
 
   const updateBotMessage = (botMessage) => {
     setChatHistory(prev => {
@@ -102,7 +107,7 @@ function ChatBox() {
   };
 
   const resetChat = async () => {
-    setChatHistory([{ text: "Hey, what can I help you today!", isBot: true }]);
+    setChatHistory([{ text: "Hello! 😊 Welcome to the University of Toronto's course selection assistant. I'm here to help you navigate your first-year course options and make choices that align with your interests and goals.", isBot: true }]);
     setIsThinking(false);
 
     // Send reset request to backend
@@ -115,12 +120,61 @@ function ChatBox() {
     });
   };
 
+  const handleUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type and size if necessary
+      const formData = new FormData();
+      formData.append('resume', file);
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/upload_resume', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          alert('Resume uploaded successfully!');
+          // Optionally, add a message to chat history or trigger further actions
+          setChatHistory(prev => [...prev, { text: '📄 Your resume has been uploaded successfully!', isBot: true }]);
+        } else {
+          alert(`Upload failed: ${data.error}`);
+        }
+      } catch (error) {
+        console.error('Error uploading resume:', error);
+        alert('An error occurred while uploading your resume.');
+      }
+    }
+  };
+
   return (
     <div className="chatbox-container">
       <div className="chat-header">
         <img src={chat_bot_icon} className="img-avatar" alt="Chat Bot Avatar" />
         <div className="text-chat">Course Recommender</div>
-        <button onClick={resetChat} type="button" className="trash-button">
+
+        {/* Upload Resume Button */}
+        <button onClick={handleUploadClick} type="button" className="upload-button" aria-label="Upload Resume">
+          <FontAwesomeIcon icon={faUpload} />
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+          accept=".pdf,.doc,.docx"
+        />
+
+        {/* Reset Chat Button */}
+        <button onClick={resetChat} type="button" className="trash-button" aria-label="Reset Chat">
           <svg viewBox="0 0 448 512" className="svgIcon">
             <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 
             32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 
@@ -154,7 +208,7 @@ function ChatBox() {
           onKeyPress={handleKeyPress}
           placeholder="Type your message here"
         />
-        <button className="send-button" onClick={handleSubmit}>
+        <button className="send-button" onClick={handleSubmit} aria-label="Send Message">
           <div className="svg-wrapper-1">
             <div className="svg-wrapper">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
