@@ -26,7 +26,7 @@ mongo_client = MongoClient(MONGO_URI)
 #     # weights = {"name": 0.0, "description": 1.0, "prerequisites": 0.0, "division_department": 0.0}
 #     return weights
 
-def retrieve_courses_from_db(query, num_results=20):
+def retrieve_courses_from_db(query, num_results=19):
     try:
         print("Connecting to MongoDB...")
         # Connect to MongoDB

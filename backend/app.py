@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from PyPDF2 import PdfReader
-from werkzeug.utils import secure_filename
 import sys
 
 uploaded_resumes = {}
@@ -125,16 +124,18 @@ def handle_query():
             system_messages.append(
                 {"role": "system", "content": f"The user's resume:\n{uploaded_resumes[user_id]}"}
             )
-        else:
-            system_messages.append(
-                {"role": "system", "content": "No resume was uploaded for this user."}
-            )
+        # else:
+        #     system_messages.append(
+        #         {"role": "system", "content": "No resume was uploaded for this user."}
+        #     )
         
         conversations[user_id] = system_messages
 
     # Add user message to conversation history
     conversations[user_id].append({'role': 'user', 'content': message})
 
+    print(conversations[user_id])
+    
     try:
         # Call OpenAI API with conversation history
         response = client.chat.completions.create(
@@ -187,6 +188,7 @@ def handle_query():
         print('Error:', e)
         return jsonify({'error': 'An error occurred while processing your request.'}), 500
 
+
 @app.route('/reset', methods=['POST'])
 def reset_conversation():
     data = request.get_json()
@@ -197,37 +199,57 @@ def reset_conversation():
 
     return jsonify({'message': 'Conversation reset.'})
 
-@app.route('/upload', methods=['POST'])
-def upload_resume():
-    user_id = request.form.get('userId')  # Get userId from form data
 
-    if not user_id:
-        return jsonify({'error': 'Missing userId in the request'}), 400
-    
-    if 'resume' not in request.files:
-        return jsonify({'error': 'No file part in the request'}), 400
+@app.route('/upload_resume', methods=['POST'])
+def upload_resume():
+    user_id = request.form.get('userId')
+    if 'resume' not in request.files or not user_id:
+        return jsonify({'error': 'No file or userId provided'}), 400
 
     file = request.files['resume']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
 
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
+    # Save the file to a desired location
+    upload_folder = 'uploads'
+    os.makedirs(upload_folder, exist_ok=True)
+    file_path = os.path.join(upload_folder, f"{user_id}_{file.filename}")
+    file.save(file_path)
 
-        # Extract resume text
-        try:
-            reader = PdfReader(file_path)
-            resume_text = "".join(page.extract_text() for page in reader.pages)
-            uploaded_resumes[user_id] = resume_text  # Store the text in memory
-            conversations[user_id].append({'role': 'user', 'content': resume_text})
-        except Exception as e:
-            return jsonify({'error': f'Error reading the PDF file: {e}'}), 500
+    # Process the resume
+    resume_text = ''
+    try:
+        # Check the file extension
+        if file.filename.lower().endswith('.pdf'):
+            # Read and extract text from the PDF file
+            with open(file_path, 'rb') as f:
+                reader = PdfReader(f)
+                for page in reader.pages:
+                    resume_text += page.extract_text()
+        else:
+            return jsonify({'error': 'Unsupported file type. Please upload a PDF file.'}), 400
+    except Exception as e:
+        print(f"Error reading resume file: {e}")
+        return jsonify({'error': 'Failed to read resume file.'}), 500
 
-        return jsonify({'message': 'File uploaded successfully', 'filePath': file_path}), 200
-    
-    return jsonify({'error': 'Invalid file type. Only PDFs are allowed.'}), 400
+    # Optionally limit the amount of text to prevent exceeding context length
+    max_resume_length = 2000  # Adjust as needed
+    if len(resume_text) > max_resume_length:
+        resume_text = resume_text[:max_resume_length] + '...'
+
+    # Append the resume text to the user's conversation history
+    if user_id in conversations:
+        conversation_history = conversations[user_id]
+    else:
+        # Initialize conversation history if it doesn't exist
+        conversation_history = [
+            {"role": "system", "content": system_prompt}
+        ]
+        conversations[user_id] = conversation_history
+
+    # Append the resume text as a user message
+    conversation_history.append({"role": "user", "content": f"My resume:\n{resume_text}"})
+
+    return jsonify({'message': 'Resume uploaded and processed successfully.'}), 200
+
 
     
 if __name__ == '__main__':
