@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Parse resume
-resume_file_path = "/Users/AlanZHAO/Desktop/UofT/MEng/ECE1786/CourseCraft/Q_Understanding_Agent/test_resume.pdf"  # Replace with your file path
+resume_file_path = "Q_Understanding_Agent/test_resume.pdf" 
 try:
     reader = PdfReader(resume_file_path)
     resume_text = "".join(page.extract_text() for page in reader.pages)
