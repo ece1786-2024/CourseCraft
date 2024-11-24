@@ -50,7 +50,7 @@ function ChatBox() {
     try {
       setChatHistory(prev => [...prev, { text: 'I am thinking ...', isBot: true }]);
 
-      const response = await fetch('http://localhost:5000/query', {
+      const response = await fetch('http://127.0.0.1:5000/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ function ChatBox() {
     setIsThinking(false);
 
     // Send reset request to backend
-    await fetch('http://localhost:5000/reset', {
+    await fetch('http://127.0.0.1:5000/reset', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
