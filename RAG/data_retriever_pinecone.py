@@ -174,7 +174,7 @@ def upsert_embeddings_to_pinecone():
     print("Upsert to Pinecone completed.")
 
 
-def retrieve_courses_from_db(query, num_results=19):
+def retrieve_courses_from_db(query, filter, num_results=10):
     try:
         print("Encoding the user query...")
         try:
@@ -197,10 +197,7 @@ def retrieve_courses_from_db(query, num_results=19):
             vector=query_embedding,
             top_k=num_results,
             include_metadata=True,
-            filter={
-                "department": {"$eq": "Department of Computer Science"},
-                "campus": {"$eq": "St. George"}
-            }
+            filter=filter
         )
 
         # Retrieve course IDs from the search results
@@ -293,11 +290,17 @@ if __name__ == '__main__':
         They have expressed an openness to foundational learning and potential exploration of AI's diverse applications.
     """
 
+    # Filter to restrict search results to a specific campus
+    filter = {
+        "department": {"$eq": "Department of Computer Science"},
+        "campus": {"$eq": "St. George"}
+    }
+
     # Measure start time
     start_time = time.time()
 
     # Retrieve similar courses
-    results = retrieve_courses_from_db(query)
+    results = retrieve_courses_from_db(query, filter, num_results=10)
     print(f"Retrieved {len(results)} courses:")
 
     # Measure end time

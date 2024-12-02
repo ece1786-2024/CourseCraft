@@ -1,8 +1,8 @@
-import React, { useRef, useState } from 'react';
-import './App.css';
+import React, { useState, useRef } from 'react';
+import ChatBox from './components/ChatBox';
+import CourseList from './components/CourseList';
 import Header from './components/Header';
 import Footer from './components/Footer';
-import ChatBox from './components/ChatBox';
 
 const App = () => {
   const [courses, setCourses] = useState([]);
@@ -14,7 +14,12 @@ const App = () => {
     <div>
       <Header chatBoxRef={chatBoxRef} />
       <ChatBox ref={chatBoxRef} onCoursesReceived={handleCoursesReceived} />
-      {/* <CourseList courses={courses} /> */}
+      {courses.length > 0 && (
+        <div className="course-list-container">
+          <h2>Your Course Recommendations:</h2>
+          <CourseList courses={courses} />
+        </div>
+      )}
       <Footer />
     </div>
   );

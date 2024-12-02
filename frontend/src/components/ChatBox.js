@@ -7,15 +7,14 @@ import { v4 as uuidv4 } from 'uuid';
 // Import Font Awesome components
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faUpload } from '@fortawesome/free-solid-svg-icons';
+import ReactMarkdown from 'react-markdown';
 
-// Import CourseList component
-import CourseList from './CourseList';
 
 const ChatBox = forwardRef(({ onCoursesReceived }, ref) => {
   const fake_response = "The server is not connected ~~";
   const [input, setInput] = useState('');
   const [chatHistory, setChatHistory] = useState([
-    { text: "Hello! 😊 Welcome to the University of Toronto's course selection assistant. I'm here to help you navigate your first-year course options and make choices that align with your interests and goals.", isBot: true },
+    { text: "Hello! 😊 Welcome to the University of Toronto's course selection assistant. Let's start!", isBot: true },
   ]);
   const [isThinking, setIsThinking] = useState(false);
   const historyRef = useRef(null);
@@ -57,9 +56,9 @@ const ChatBox = forwardRef(({ onCoursesReceived }, ref) => {
 
   const getBotResponse = async (userMessage) => {
     try {
-      // Add "thinking" indicator to chat history
+      // Add "I am thinking ..." indicator to chat history
       setChatHistory(prev => [...prev, { text: 'I am thinking ...', isBot: true }]);
-  
+
       const response = await fetch('http://127.0.0.1:5000/query', {
         method: 'POST',
         headers: {
@@ -70,53 +69,49 @@ const ChatBox = forwardRef(({ onCoursesReceived }, ref) => {
           message: userMessage,
         }),
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(data.error || 'Network response was not ok');
       }
-  
-      let botMessage = data.response;
-  
+
+      // Remove "I am thinking ..." message
       setIsThinking(false);
-      updateBotMessage(botMessage);
-  
+      setChatHistory(prev => prev.slice(0, -1));
+
+      // Add the assistant's response to the chat history
+      let botMessage = data.response;
+
+      setChatHistory(prev => [
+        ...prev,
+        { text: botMessage, isBot: true },
+      ]);
+
       if (data.conversationEnded) {
         // Parse and handle the courses data
         let courses = [];
         try {
           courses = JSON.parse(data.finalOutput);
           console.log("Parsed JSON:", courses);
-  
+
           // Pass the courses data to the parent component (if needed)
           onCoursesReceived(courses);
         } catch (error) {
           console.error("Failed to parse JSON:", error);
           onCoursesReceived([]);
         }
-  
-        // Add a friendly message and the course recommendations to the chat history
-        setChatHistory(prev => [
-          ...prev,
-          {
-            text: "Based on our conversation, I've found some course recommendations for you:",
-            isBot: true,
-            type: 'text',
-          },
-          {
-            isBot: true,
-            type: 'courses',
-            courses: courses,
-          },
-        ]);
       }
     } catch (error) {
       console.error("Error fetching bot response:", error);
       let botMessage = fake_response;
-  
+
       setIsThinking(false);
-      updateBotMessage(botMessage);
+      setChatHistory(prev => prev.slice(0, -1)); // Remove "I am thinking ..." message
+      setChatHistory(prev => [
+        ...prev,
+        { text: botMessage, isBot: true },
+      ]);
     }
   };
 
@@ -129,7 +124,7 @@ const ChatBox = forwardRef(({ onCoursesReceived }, ref) => {
   };
 
   const resetChat = async () => {
-    setChatHistory([{ text: "Hello! 😊 Welcome to the University of Toronto's course selection assistant. I'm here to help you navigate your first-year course options and make choices that align with your interests and goals.", isBot: true }]);
+    setChatHistory([{ text: "Hello! 😊 Welcome to the University of Toronto's course selection assistant. Let's start!", isBot: true }]);
     setIsThinking(false);
 
     // Send reset request to backend
@@ -209,22 +204,15 @@ const ChatBox = forwardRef(({ onCoursesReceived }, ref) => {
 
       <div className="chatbox" ref={historyRef}>
         <div className="historyChat">
-          {chatHistory.map((message, index) => {
-            if (message.type === 'courses') {
-              return (
-                <div key={index} className={`text ${message.isBot ? 'botText' : 'userText'}`}>
-                  {/* Render the course recommendations */}
-                  <CourseList courses={message.courses} />
-                </div>
-              );
-            } else {
-              return (
-                <div key={index} className={`text ${message.isBot ? 'botText' : 'userText'}`}>
-                  <p>{message.text}</p>
-                </div>
-              );
-            }
-          })}
+        {chatHistory.map((message, index) => (
+          <div key={index} className={`text ${message.isBot ? 'botText' : 'userText'}`}>
+            {message.isBot ? (
+              <ReactMarkdown>{message.text}</ReactMarkdown>
+            ) : (
+              <p>{message.text}</p>
+            )}
+          </div>
+        ))}
         </div>
       </div>
 
