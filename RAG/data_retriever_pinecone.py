@@ -137,9 +137,6 @@ def upsert_embeddings_to_pinecone():
                     "meeting_info": sanitize_metadata_field(meeting_info, "No Meeting Information"),
                     "description": sanitize_metadata_field(description, "No Description Available")
                 }
-                if exclusions == []:
-                    print(course_code)
-                    print(exclusions)
                 metadata_list.append(metadata)
 
             except Exception as e:
@@ -206,7 +203,6 @@ def retrieve_courses_from_db(query, filter, num_results=10):
         print(f"Retrieved {len(retrieved_ids)} course IDs from Pinecone.")
 
         # Fetch course details from MongoDB
-        print("Fetching course details from MongoDB...")
         retrieved_courses = []
         course_ids_seen = set()
 
@@ -226,43 +222,49 @@ def retrieve_courses_from_db(query, filter, num_results=10):
                     "exclusions": 1,
                     "campus": 1,
                     "section_code": 1,
+                    "sessions": 1
                 })
 
                 if not course:
                     continue
-
+                
+                print(f"{course['course_code']: <10} - {course['name']}")
                 # Retrieve the meeting_sections for this course
-                meeting_sections = list(meeting_sections_collection.find({'course_id': course_id}))
+                meeting_sections = list(meeting_sections_collection.find({'course_id': course_id}, {"_id":0}))
 
-                # Build a string representation of the meeting_sections
-                meeting_info = '\n'.join(extract_lecture_meeting_sections(course['course_id'], meeting_sections))
+                # Convert meeting_sections into desired string format
+                def format_meeting_section(ms):
+                    instructors = ', '.join(ms.get('instructors', []))
+                    # Format times
+                    times_str = []
+                    for t in ms.get('times', []):
+                        day = t.get('day', 'N/A')
+                        start = t.get('start', 'N/A')
+                        end = t.get('end', 'N/A')
+                        location = t.get('location', 'N/A')
+                        times_str.append(f"Day {day}, {start}-{end} at {location}")
+                    times_str = ', '.join(times_str)
 
-                # Create the combined text
-                combined_text = """This course {code} - '{name}' is offered by the {department} department in the {division}.
-                Course Description: {description}
-                Understanding the course code: {code}: The first three letters represent the department ({department_code}),
-                and the section code {section_code} indicates when it's offered - 'F' means Fall semester (September-December),
-                'S' means Winter semester (January-April), and 'Y' means full year course.
-                Prerequisites required: {prerequisites}
-                Exclusions: {exclusions}
-                This course is offered at the {campus} campus during these sessions: {sessions}.
-                Meeting Sections: {meeting_info}
-                """.format(
-                    code=course.get('course_code', 'N/A'),
-                    name=course.get('name', 'N/A'),
-                    department=course.get('department', 'N/A'),
-                    division=course.get('division', 'N/A'),
-                    description=course.get('description', 'N/A'),
-                    department_code=course.get('course_code', 'N/A')[:3],
-                    section_code=course.get('section_code', 'N/A'),
-                    prerequisites=course.get('prerequisites', 'No prerequisites'),
-                    exclusions=course.get('exclusions', 'No exclusions'),
-                    campus=course.get('campus', 'N/A'),
-                    sessions=', '.join(course.get('sessions', [])) or 'N/A',
-                    meeting_info=meeting_info or 'N/A'
-                )
+                    return f"Section: {ms.get('section_code','N/A')}, Type: {ms.get('type','N/A')}, Instructors: {instructors}, Times: {times_str}, Class Size: {ms.get('size','N/A')}"
 
-                retrieved_courses.append(combined_text)
+                meeting_sections_str = [format_meeting_section(ms) for ms in meeting_sections if ms.get('type') == "Lecture"]
+
+                # Create the final course object in the desired format
+                final_course = {
+                    "course_code": course.get("course_code", "N/A"),
+                    "name": course.get("name", "N/A"),
+                    "department": course.get("department", "N/A"),
+                    "division": course.get("division", "N/A"),
+                    "description": course.get("description", "N/A"),
+                    "prerequisites": course.get("prerequisites", "No prerequisites") or "No prerequisites",
+                    "exclusions": course.get("exclusions", "No exclusions") or "No exclusions",
+                    "campus": course.get("campus", "N/A"),
+                    "section_code": course.get("section_code", "N/A"),
+                    "sessions": ', '.join(course.get("sessions", [])) if course.get("sessions") else "N/A",
+                    "meeting_sections": meeting_sections_str
+                }
+
+                retrieved_courses.append(final_course)
                 course_ids_seen.add(course_id)
 
                 if len(retrieved_courses) >= num_results:
@@ -270,7 +272,11 @@ def retrieve_courses_from_db(query, filter, num_results=10):
             except Exception as e:
                 print(f"Error processing course {course_id}: {e}")
                 continue
-
+        
+        # Print the retrieved courses
+        for idx, course in enumerate(retrieved_courses):
+            print(f"Course {idx + 1}: {course}")
+            print("\n")
         return retrieved_courses
 
     except Exception as e:

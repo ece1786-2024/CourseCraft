@@ -98,7 +98,6 @@ def generate_final_output(refined_query, retrieved_courses):
     print("Generating final output...")
     json_agent = JSONGeneratorAgent(max_tokens=4096)
     text_agent = TextRecommendationAgent(max_tokens=4096)
-    
     course_json = json_agent.generate_json_recommendations(refined_query, retrieved_courses)
     text_recommendations = text_agent.generate_text_recommendations(course_json)
     return course_json, text_recommendations
@@ -152,20 +151,21 @@ def handle_query():
 
             # Generate the refined query based on the conversation
             refined_query_prompt = """
-                Based on the conversation, generate a detailed and precise user query. 
-                The query should reflect all of the student's interests, goals, preferences, and any constraints they have 
-                mentioned. Be sure to explicitly state whether or not the student has provided information about campus, 
-                department, faculty, or any specific hard constraints, as this information is crucial for filtering in 
-                subsequent steps. The query should be written in the third person and include all useful information the 
-                student has provided.
+                Based on the entire conversation, generate a refined query that captures all of the student's interests, goals, 
+                preferences, and constraints. This refined query should be written in the first person and detail what the student 
+                wants to learn and achieve. In addition, it should analyze and elaborate on potential fields or subject areas that 
+                the student might be interested in exploring to achieve these goals. Consider how these fields complement the student's 
+                stated interests and skills, or how they might fill in gaps that would help the student reach their desired outcomes.
+
+                Be explicit about any campus, department, or faculty preferences the student has mentioned, as well as any hard 
+                constraints like prerequisite requirements or session availability. If the student has not provided any such details, 
+                state that clearly. The refined query should also consider delivery modes (e.g., online or in-person) if the student 
+                expressed such preferences.
 
                 Example of the desired format:
-                The student is interested in an introductory course in machine learning and AI at the University of 
-                Toronto's St. George campus. They prefer an entry-level course, focusing on broad concepts of ML and AI 
-                without specific experience in mathematics or programming prerequisites. The student is keen on exploring 
-                various aspects of machine learning, possibly including neural networks, natural language processing, and 
-                robotics, with an eye towards applying this knowledge in a versatile career setting. They have expressed an 
-                openness to foundational learning and potential exploration of AI's diverse applications.
+                I’m eager to learn programming with a focus on Python, and I want to apply these coding skills to build real software. I enjoy math and sciences, which means I’m comfortable with analytical thinking, and I’m ready for technical, problem-solving work. I haven’t mentioned any specific campus, department, or faculty preferences, and I don’t have any constraints regarding prerequisites or session availability. I’m also open to any delivery mode, whether online or in-person.
+                I’m interested in exploring courses that blend coding, analytical reasoning, and hands-on development. I’m looking for foundational courses in computer science that introduce software architecture, data structures, and algorithms. I also want to consider software engineering classes that teach coding best practices, testing, and how to manage large codebases. Additionally, I’d be curious about information technology courses to understand how software systems are deployed and maintained in real-world environments.
+                In short, I’m looking for introductory and foundational courses related to Python coding, emphasizing software development contexts. I want to strengthen my analytical and problem-solving skills while learning about software design principles and applying math and science concepts to coding challenges. I have no restrictions on campus or session timing, and I’m flexible about delivery mode. I want this guidance to help me find a path that fuses my love of technology with practical, hands-on coding and software development opportunities.
             """
             refined_query_response = client.chat.completions.create(
                 model='gpt-4o',
@@ -180,141 +180,54 @@ def handle_query():
 
             # Generate a filter for retrieving courses based on the refined query
             filter_prompt = """
-                You are a system designed to generate a filter for database searches. Based on the refined user query and the user’s conversation history, create a filter in JSON format that will retrieve relevant courses from the database.
+                You are a system designed to generate a filter for database searches. Based on the refined user query and the user’s conversation history, 
+                create a filter in JSON format that will retrieve relevant courses from the database.
 
-                ### Filter Requirements:
-                1. **Department**: Select the department that best matches the user’s interests or goals. You must strictly use one of the following valid department values:
-                - None
-                - ASDN: Arts and Science, Office of the Dean
-                - African Studies Centre
-                - Arts & Science Internship Program
-                - Arts & Science Internship Program - Year 2
-                - Arts & Science Internship Program - Year 3
-                - Canadian Institute for Theoretical Astrophysics
-                - Centre for Caribbean Studies
-                - Centre for Criminology and Sociolegal Studies
-                - Centre for Diaspora & Transnational Studies
-                - Centre for Drama, Theatre and Performance Studies
-                - Centre for Entrepreneurship
-                - Centre for Ethics
-                - Centre for European and Eurasian Studies
-                - Centre for Industrial Relations and Human Resources
-                - Centre for Study of United States
-                - Centre for Teaching and Learning (UTSC)
-                - Cinema Studies Institute
-                - Contemporary East and Southeast Asian Studies
-                - Cross-Disciplinary Programs Office
-                - Department for the Study of Religion
-                - Department of Anatomy and Cell Biology
-                - Department of Anthropology
-                - Department of Anthropology (UTSC)
-                - Department of Art History
-                - Department of Astronomy and Astrophysics
-                - Department of Biochemistry
-                - Department of Biological Sciences (UTSC)
-                - Department of Biology
-                - Department of Cell and Systems Biology
-                - Department of Chemical Engineering and Applied Chemistry
-                - Department of Chemical and Physical Sciences
-                - Department of Chemistry
-                - Department of Civil and Mineral Engineering
-                - Department of Classics
-                - Department of Computer Science
-                - Department of Earth Sciences
-                - Department of East Asian Studies
-                - Department of Ecology and Evolutionary Biology
-                - Department of Economics
-                - Department of English
-                - Department of English (UTSC)
-                - Department of English and Drama
-                - Department of French
-                - Department of Geography and Planning
-                - Department of Geography, Geomatics and Environment
-                - Department of Germanic Languages & Literatures
-                - Department of Global Development Studies (UTSC)
-                - Department of Health and Society (UTSC)
-                - Department of Historical Studies
-                - Department of History
-                - Department of Human Geography (UTSC)
-                - Department of Immunology
-                - Department of Italian Studies
-                - Department of Laboratory Medicine and Pathobiology
-                - Department of Language Studies
-                - Department of Language Studies (UTSC)
-                - Department of Linguistics
-                - Department of Management
-                - Department of Management (UTSC)
-                - Department of Materials Science and Engineering
-                - Department of Mathematical and Computational Sciences
-                - Department of Mathematics
-                - Department of Mechanical & Industrial Engineering
-                - Department of Molecular Genetics
-                - Department of Near & Middle Eastern Civilizations
-                - Department of Nutritional Sciences
-                - Department of Pharmacology
-                - Department of Philosophy
-                - Department of Philosophy (UTSC)
-                - Department of Physics
-                - Department of Physiology
-                - Department of Political Science
-                - Department of Political Science (UTSC)
-                - Department of Psychology
-                - Department of Psychology (UTSC)
-                - Department of Slavic and East European Languages & Cultures
-                - Department of Sociology
-                - Department of Sociology (UTSC)
-                - Department of Spanish and Portuguese
-                - Department of Statistical Sciences
-                - Department of Visual Studies
-                - Dept. of Arts, Culture & Media (UTSC)
-                - Dept. of Computer & Mathematical Sci (UTSC)
-                - Dept. of Historical & Cultural Studies (UTSC)
-                - Dept. of Physical & Environmental Sci (UTSC)
-                - Division of Engineering Science
-                - Edward S. Rogers Sr. Dept. of Electrical & Computer Engin.
-                - Engineering First Year Office
-                - Faculty of Applied Science & Engineering
-                - Faculty of Arts and Science
-                - Faculty of Kinesiology and Physical Education
-                - Faculty of Music
-                - Human Biology Program
-                - Indigenous Studies - Arts & Science
-                - Innis College
-                - Inst for Studies in Transdisciplinary Engin Educ & Practice
-                - Inst. for the History & Philosophy of Science & Technology
-                - Institute for Management and Innovation
-                - Institute for the Study of University Pedagogy
-                - Institute of Biomedical Engineering
-                - Institute of Communication and Culture
-                - Jewish Studies
-                - John H. Daniels Faculty of Architecture, Landscape, & Design
-                - Munk School of Global Affairs and Public Policy
-                - New College
-                - Ontario Institute for Studies in Education/Univ. of Toronto
-                - Rotman Commerce
-                - School of Environment
-                - Sexual Diversity Studies
-                - South Asian Studies
-                - St. Michael's College
-                - Trinity College
-                - University College
-                - Victoria College
-                - Women and Gender Studies Institute
-                - Woodsworth College
-
-                2. **Campus**: Select the campus that matches the user’s preferences. Use one of the following valid campus values:
-                - Centennial College
-                - Off Campus
-                - Scarborough
-                - Sheridan College
-                - St. George
-                - University of Toronto at Mississauga
+                {'St. George': ['Department of Political Science', 'Department of Statistical Sciences', 'Department of Civil and Mineral Engineering', 
+                "St. Michael's College", 'Centre for Study of United States', 'Canadian Institute for Theoretical Astrophysics', 
+                'Department of Materials Science and Engineering', 'Inst for Studies in Transdisciplinary Engin Educ & Practice', 
+                'ASDN: Arts and Science, Office of the Dean', 'Department of Philosophy', 'African Studies Centre', 
+                'Faculty of Kinesiology and Physical Education', 'Division of Engineering Science', 'Centre for European and Eurasian Studies', 
+                'Department of Computer Science', 'Centre for Diaspora & Transnational Studies', 'Arts & Science Internship Program - Year 3', 
+                'Department of Classics', 'Women and Gender Studies Institute', 'Indigenous Studies - Arts & Science', 
+                'Edward S. Rogers Sr. Dept. of Electrical & Computer Engin.', 'Centre for Industrial Relations and Human Resources', 
+                'Department of Astronomy and Astrophysics', 'Jewish Studies', 'Cross-Disciplinary Programs Office', 'Department of Biochemistry', 
+                'Faculty of Arts and Science', 'Centre for Caribbean Studies', 'Sexual Diversity Studies', 'Department for the Study of Religion', 
+                'Victoria College', 'Department of Italian Studies', 'Department of Physics', 'Department of Earth Sciences', 
+                'Arts & Science Internship Program - Year 2', 'Engineering First Year Office', 'Department of Economics', 
+                'Arts & Science Internship Program', 'New College', 'Department of Molecular Genetics', 'Department of Anthropology', 
+                'Department of Art History', 'Department of Germanic Languages & Literatures', 'Centre for Drama, Theatre and Performance Studies', 
+                'Department of Cell and Systems Biology', 'Department of Ecology and Evolutionary Biology', 'Department of Slavic and East European Languages & Cultures', 
+                'Department of Immunology', 'Department of Mechanical & Industrial Engineering', 'School of Environment', 
+                'Inst. for the History & Philosophy of Science & Technology', 'Department of Pharmacology', 'Human Biology Program', 
+                'Institute of Biomedical Engineering', 'Department of Laboratory Medicine and Pathobiology', 'Department of Mathematics', 
+                'University College', 'Department of Physiology', 'Department of Spanish and Portuguese', 'Trinity College', 'Innis College', 
+                'Munk School of Global Affairs and Public Policy', 'Department of Chemical Engineering and Applied Chemistry', 
+                'Department of Geography and Planning', 'Department of Nutritional Sciences', 'Faculty of Applied Science & Engineering', 
+                'Department of Chemistry', 'Department of Anatomy and Cell Biology', 'Department of Near & Middle Eastern Civilizations', 
+                'Centre for Entrepreneurship', 'Department of Psychology', 'Department of Sociology', 'Centre for Ethics', 'Department of East Asian Studies', 
+                'John H. Daniels Faculty of Architecture, Landscape, & Design', 'Centre for Criminology and Sociolegal Studies', 'Department of English', 
+                'South Asian Studies', 'Cinema Studies Institute', 'Woodsworth College', 'Rotman Commerce', 'Faculty of Music', 'Department of French', 
+                'Contemporary East and Southeast Asian Studies', 'Department of History', 'Department of Linguistics'], 
+                'Scarborough': ['Department of Sociology (UTSC)', 'Department of Psychology (UTSC)', 'Department of Management (UTSC)', 
+                'Dept. of Physical & Environmental Sci (UTSC)', 'Centre for Teaching and Learning (UTSC)', 'Department of Philosophy (UTSC)', 
+                'Ontario Institute for Studies in Education/Univ. of Toronto', 'Department of Political Science (UTSC)', 'Department of Health and Society (UTSC)', 
+                'Dept. of Arts, Culture & Media (UTSC)', 'Dept. of Computer & Mathematical Sci (UTSC)', 'Dept. of Historical & Cultural Studies (UTSC)', 
+                'Department of English (UTSC)', 'Department of Global Development Studies (UTSC)', 'Department of Anthropology (UTSC)', 
+                'Department of Human Geography (UTSC)', 'Department of Language Studies (UTSC)', 'Department of Biological Sciences (UTSC)'], 
+                'University of Toronto at Mississauga': ['Department of Political Science', 'Department of English and Drama', 'Department of Visual Studies', 
+                'Institute of Communication and Culture', 'Department of Geography, Geomatics and Environment', 'Institute for Management and Innovation', 
+                'Department of Philosophy', 'Department of Biology', 'Department of Psychology', 'Department of Mathematical and Computational Sciences', 
+                'Institute for the Study of University Pedagogy', 'Department of Management', 'Department of Chemical and Physical Sciences', 
+                'Department of Sociology', 'Department of Language Studies', 'Department of Anthropology', 'Department of Economics', 
+                'Department of Historical Studies'], 'Sheridan College': ['Department of English and Drama', 'Department of Visual Studies'], 
+                'Centennial College': ['Dept. of Arts, Culture & Media (UTSC)'], 'Off Campus': ['Faculty of Applied Science & Engineering']}
 
                 ### Expected Output Format:
                 The output must be strictly in JSON format, such as:
                 {
-                    "department": {"$eq": "Department of Computer Science"},
-                    "campus": {"$eq": "St. George"}
+                    "department": {"$in": ["Department of Computer Science", "Department of Mathematics", "Department of Statistics"]},
+                    "campus": {"$in": ["St. George"]}
                 }
 
                 ### Notes:
@@ -322,9 +235,13 @@ def handle_query():
                 2. Do not include any additional text such as ``` json ``` or ``` { } ``` in the output, start with {}.
 
                 The filter should include:
-                1. **Department**: Use the department that best matches the user's stated interests or goals. If the user has not specified a department, default to "No Department information."
+                1. **Department**: Use the department that best matches the user's stated interests or goals. When generating the filter for department, 
+                make sure only consider the departments that are available at the campus you have determined, so always predict the campus first and 
+                select the best matching departments from those campuses.
                 2. **Campus**: Use the campus that aligns with the user's preferences. If no campus is mentioned, default to "St. George."
-                3. Ensure that the filter is structured for a MongoDB query using `$eq` for equality matching.
+                3. Ensure that the filter is structured for a MongoDB query using `$in` to include all possible department the user might be in. 
+                If the user explicitly mentions a department, only include that department in the filter. If the user also mentions that they are 
+                interested in courses that are outside of his/her department, include all possible departments in the filter.
             """
             filter_response = client.chat.completions.create(
                 model='gpt-4o',
@@ -342,7 +259,7 @@ def handle_query():
             except json.JSONDecodeError as e:
                 print("Error parsing JSON:", e)
                 filter_dict = {
-                    "department": {
+                    "campus": {
                         "$in": [
                             "Centennial College",
                             "Off Campus",
@@ -356,6 +273,8 @@ def handle_query():
 
             # Retrieve courses from the database based on the refined query
             retrieved_courses = retrieve_courses_from_db(refined_query, filter_dict)
+
+            
 
             # Generate the final output using the refined query and retrieved courses
             course_json, text_recommendations = generate_final_output(refined_query, retrieved_courses)
@@ -418,8 +337,7 @@ def upload_resume():
         print(f"Error reading resume file: {e}")
         return jsonify({'error': 'Failed to read resume file.'}), 500
 
-    # Optionally limit the amount of text to prevent exceeding context length
-    max_resume_length = 2000  # Adjust as needed
+    max_resume_length = 2000
     if len(resume_text) > max_resume_length:
         resume_text = resume_text[:max_resume_length] + '...'
 
@@ -437,7 +355,6 @@ def upload_resume():
     conversation_history.append({"role": "user", "content": f"My resume:\n{resume_text}"})
 
     return jsonify({'message': 'Resume uploaded and processed successfully.'}), 200
-
 
     
 if __name__ == '__main__':
